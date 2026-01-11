@@ -1,6 +1,7 @@
 package com.application.critik.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -24,24 +25,29 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@Schema(description = "Comment entity with nested reply support")
 public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "Comment ID", example = "1")
     private Long id;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "artwork_id")
     @JsonIgnoreProperties({"user", "comments"}) // Prevent circular reference
+    @Schema(description = "Artwork being commented on")
     private Artwork artwork;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "user_id")
+    @Schema(description = "User who wrote the comment")
     private User user;
 
     @Column(columnDefinition = "TEXT", nullable = false)
     @NotBlank(message = "Comment text is required")
     @Size(max = 2000, message = "Comment cannot exceed 2000 characters")
+    @Schema(description = "Comment text content", example = "Great artwork! Love the colors.", required = true)
     private String commentText;
 
     /**
@@ -51,6 +57,7 @@ public class Comment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_comment_id")
     @JsonIgnoreProperties({"replies", "parentComment"})
+    @Schema(description = "Parent comment (null for top-level comments)")
     private Comment parentComment;
 
     /**
@@ -60,8 +67,10 @@ public class Comment {
     @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties({"parentComment"})
     @Builder.Default
+    @Schema(description = "List of replies to this comment")
     private List<Comment> replies = new ArrayList<>();
 
+    @Schema(description = "Creation timestamp", example = "2025-01-11T10:30:00")
     private LocalDateTime createdAt;
 
     @PrePersist

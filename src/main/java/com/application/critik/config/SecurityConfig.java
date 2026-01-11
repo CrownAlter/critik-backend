@@ -74,6 +74,8 @@ public class SecurityConfig {
      * - GET /artworks/{id} - View single artwork
      * - GET /artworks/{id}/comments - View comments
      * - GET /artworks/{id}/reactions - View reaction counts
+     * - /swagger-ui/** - Swagger UI for API documentation
+     * - /v3/api-docs/** - OpenAPI specification
      * - /actuator/health - Health check endpoint
      * 
      * All other endpoints require authentication.
@@ -98,6 +100,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/search/**").permitAll()
                         // User profiles - public viewing
                         .requestMatchers(HttpMethod.GET, "/users/{username}").permitAll()
+                        // Swagger/OpenAPI documentation endpoints
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         // Actuator health endpoint for load balancers/monitoring
                         .requestMatchers("/actuator/health").permitAll()
                         // All other requests require authentication
