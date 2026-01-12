@@ -65,8 +65,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Skip rate limiting for static resources and actuator health
-        if (path.startsWith("/uploads/") || path.equals("/actuator/health")) {
+        // Skip rate limiting for static resources, docs, and actuator health
+        if (path.startsWith("/uploads/")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-ui")
+                || path.equals("/swagger-ui.html")
+                || path.equals("/actuator/health")) {
             filterChain.doFilter(request, response);
             return;
         }

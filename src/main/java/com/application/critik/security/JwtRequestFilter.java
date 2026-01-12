@@ -49,6 +49,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         
         // Public prefixes - authentication not required
         if (path.startsWith("/uploads/") || path.startsWith("/auth/")) return true;
+
+        // OpenAPI / Swagger UI
+        if (path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui") || path.equals("/swagger-ui.html")) return true;
         
         // Public exact routes
         if (path.equals("/artworks/feed") || path.equals("/favicon.ico")) return true;

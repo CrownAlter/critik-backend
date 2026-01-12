@@ -181,6 +181,17 @@ openssl rand -base64 32
 java -jar target/critik-0.0.1-SNAPSHOT.jar
 ```
 
+### API Documentation (OpenAPI / Swagger UI)
+
+Once the app is running:
+
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
+To try authenticated endpoints in Swagger UI, click **Authorize** and paste your JWT as:
+
+`Bearer <access_token>`
+
 ### Run Tests
 
 ```bash
@@ -657,7 +668,7 @@ To make Critik a fully production-ready social media platform, consider implemen
 <dependency>
     <groupId>org.springdoc</groupId>
     <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-    <version>2.3.0</version>
+    <version>2.8.5</version>
 </dependency>
 
 <!-- AWS S3 -->

@@ -89,6 +89,11 @@ public class SecurityConfig {
                         // Public endpoints - no authentication required
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+
+                        // OpenAPI / Swagger UI
+                        .requestMatchers("/v3/api-docs/**").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/artworks/feed").permitAll()
                         .requestMatchers(HttpMethod.GET, "/artworks/feed/{userId}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/artworks/{artworkId}").permitAll()

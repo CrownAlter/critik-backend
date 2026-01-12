@@ -1,5 +1,17 @@
 # Critik API - Comprehensive Documentation
 
+## OpenAPI / Swagger UI
+
+This project also exposes interactive API documentation generated from the Spring controllers:
+
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
+For secured endpoints, obtain an access token via `POST /auth/login` and then authorize in Swagger UI with:
+
+`Bearer <access_token>`
+
+
 **Version:** 1.0.0  
 **Last Updated:** 2026-01-11  
 **Base URL:** `http://localhost:8080`
