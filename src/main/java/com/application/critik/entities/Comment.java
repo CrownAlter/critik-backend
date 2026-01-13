@@ -32,7 +32,7 @@ public class Comment {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "artwork_id")
-    @JsonIgnoreProperties({"user", "comments"}) // Prevent circular reference
+    @JsonIgnoreProperties({ "user", "comments" }) // Prevent circular reference
     private Artwork artwork;
 
     @ManyToOne(optional = false)
@@ -50,15 +50,15 @@ public class Comment {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_comment_id")
-    @JsonIgnoreProperties({"replies", "parentComment"})
+    @JsonIgnoreProperties({ "replies", "parentComment" })
     private Comment parentComment;
 
     /**
      * Child comments (replies) to this comment.
      * Eagerly fetched to build comment trees.
      */
-    @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnoreProperties({"parentComment"})
+    @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonIgnoreProperties({ "parentComment" })
     @Builder.Default
     private List<Comment> replies = new ArrayList<>();
 
