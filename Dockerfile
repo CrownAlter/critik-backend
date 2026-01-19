@@ -11,7 +11,9 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
 # Create directory for uploads if it doesn't exist (configured in application.properties)
-RUN mkdir -p uploads
+# Create directory for uploads if it doesn't exist (configured in application.properties)
+# Fix permissions so the 'spring' user can write to it
+RUN mkdir -p uploads && chown spring:spring uploads
 
 # Create entrypoint script inline to ensure correct line endings (LF)
 RUN echo '#!/bin/sh' > entrypoint.sh && \
