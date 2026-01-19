@@ -17,10 +17,21 @@ RUN mkdir -p uploads
 RUN echo '#!/bin/sh' > entrypoint.sh && \
     echo 'if [ -n "$DB_URL" ]; then' >> entrypoint.sh && \
     echo '    echo "Configuring Database URL..."' >> entrypoint.sh && \
-    echo '    # Convert postgres:// to jdbc:postgresql://' >> entrypoint.sh && \
-    echo '    CLEAN_URL=$(echo "$DB_URL" | sed -e "s/^postgres:/jdbc:postgresql:/" -e "s/^postgresql:/jdbc:postgresql:/")' >> entrypoint.sh && \
-    echo '    export SPRING_DATASOURCE_URL="$CLEAN_URL"' >> entrypoint.sh && \
-    echo '    echo "Database URL configured."' >> entrypoint.sh && \
+    echo '    # Render DB_URL format: postgres://user:pass@host:port/db' >> entrypoint.sh && \
+    echo '    # Strip scheme' >> entrypoint.sh && \
+    echo '    NO_SCHEME="${DB_URL#*://}"' >> entrypoint.sh && \
+    echo '    # Extract user:pass' >> entrypoint.sh && \
+    echo '    CREDS="${NO_SCHEME%@*}"' >> entrypoint.sh && \
+    echo '    # Extract host:port/db' >> entrypoint.sh && \
+    echo '    HOST_DB="${NO_SCHEME#*@}"' >> entrypoint.sh && \
+    echo '    # Extract user and pass' >> entrypoint.sh && \
+    echo '    DB_USER="${CREDS%:*}"' >> entrypoint.sh && \
+    echo '    DB_PASS="${CREDS#*:}"' >> entrypoint.sh && \
+    echo '    # Export standard Spring variables' >> entrypoint.sh && \
+    echo '    export SPRING_DATASOURCE_URL="jdbc:postgresql://${HOST_DB}"' >> entrypoint.sh && \
+    echo '    export SPRING_DATASOURCE_USERNAME="${DB_USER}"' >> entrypoint.sh && \
+    echo '    export SPRING_DATASOURCE_PASSWORD="${DB_PASS}"' >> entrypoint.sh && \
+    echo '    echo "Database configured with separate credentials."' >> entrypoint.sh && \
     echo 'fi' >> entrypoint.sh && \
     echo 'exec "$@"' >> entrypoint.sh && \
     chmod +x entrypoint.sh
