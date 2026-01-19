@@ -13,10 +13,18 @@ services:
         value: production
       - key: JWT_SECRET
         generateValue: true
-      - key: DB_URL
+      - key: DB_HOST
         fromDatabase:
           name: critik-db
-          property: connectionString
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: critik-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: critik-db
+          property: databaseName
       - key: DB_USERNAME
         fromDatabase:
           name: critik-db
