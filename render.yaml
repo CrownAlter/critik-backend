@@ -1,0 +1,36 @@
+services:
+  # The Backend Web Service
+  - type: web
+    name: critik-backend
+    env: docker
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_URL
+        fromDatabase:
+          name: critik-db
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: critik-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: critik-db
+          property: password
+
+databases:
+  # The PostgreSQL Database
+  - name: critik-db
+    databaseName: critik
+    user: critik
+    plan: free
+    region: oregon
+    postgresMajorVersion: 18 # Render supports 18
