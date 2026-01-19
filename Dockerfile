@@ -14,7 +14,8 @@ COPY --from=build /app/target/*.jar app.jar
 RUN mkdir -p uploads
 
 COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
+# Fix line endings (Windows compatibility) and make executable
+RUN apk add --no-cache dos2unix && dos2unix entrypoint.sh && chmod +x entrypoint.sh
 
 # Create a non-root user for security
 RUN addgroup -S spring && adduser -S spring -G spring
