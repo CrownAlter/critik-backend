@@ -10,7 +10,9 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
-# Create directory for uploads if it doesn't exist (configured in application.properties)
+# Create a non-root user for security
+RUN addgroup -S spring && adduser -S spring -G spring
+
 # Create directory for uploads if it doesn't exist (configured in application.properties)
 # Fix permissions so the 'spring' user can write to it
 RUN mkdir -p uploads && chown spring:spring uploads
@@ -38,8 +40,6 @@ RUN echo '#!/bin/sh' > entrypoint.sh && \
     echo 'exec "$@"' >> entrypoint.sh && \
     chmod +x entrypoint.sh
 
-# Create a non-root user for security
-RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
 EXPOSE 8080
