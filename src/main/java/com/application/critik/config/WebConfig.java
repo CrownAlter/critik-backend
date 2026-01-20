@@ -26,27 +26,12 @@ public class WebConfig implements WebMvcConfigurer {
      * Configure static resource handler for uploaded files.
      * Maps /uploads/** URLs to the file system directory where images are stored.
      * 
-     * Example: GET /uploads/uuid_filename.jpg serves from {uploadDir}/uuid_filename.jpg
+     * Example: GET /uploads/uuid_filename.jpg serves from
+     * {uploadDir}/uuid_filename.jpg
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + uploadDir + "/");
-    }
-
-    /**
-     * Configure CORS mappings for cross-origin requests.
-     * Allows frontend applications (e.g., Angular, React) to access the API.
-     * 
-     * PRODUCTION: Update allowedOrigins to your production frontend domain.
-     * Consider using environment variables for different environments.
-     */
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") // Apply CORS to all endpoints
-                .allowedOrigins("http://localhost:4200") // Allow Angular dev server
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true);
     }
 }
