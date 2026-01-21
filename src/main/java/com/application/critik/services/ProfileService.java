@@ -2,6 +2,7 @@ package com.application.critik.services;
 
 import com.application.critik.dto.ProfileResponse;
 import com.application.critik.dto.UserDto;
+import com.application.critik.dto.UserStatsDto;
 import com.application.critik.dto.UserUpdateRequest;
 import com.application.critik.entities.Artwork;
 import com.application.critik.entities.User;
@@ -25,7 +26,8 @@ import java.util.regex.Pattern;
  * Security features:
  * - Users can only edit their own profiles
  * - Email changes are validated for format and uniqueness
- * - Profile viewing is available to all users (authenticated get additional info)
+ * - Profile viewing is available to all users (authenticated get additional
+ * info)
  */
 @Service
 @RequiredArgsConstructor
@@ -36,8 +38,7 @@ public class ProfileService {
     private final FollowRepository followRepository;
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
-            "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
-    );
+            "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     /**
      * Gets a user's public profile.
@@ -63,8 +64,7 @@ public class ProfileService {
 
             if (currentUser != null) {
                 isFollowing = followRepository.existsByFollowerIdAndFollowedId(
-                        currentUser.getId(), user.getId()
-                );
+                        currentUser.getId(), user.getId());
             }
         }
 
@@ -74,9 +74,36 @@ public class ProfileService {
                 .displayName(user.getDisplayName())
                 .email(user.getEmail())
                 .bio(user.getBio())
+                .avatarUrl(user.getAvatarUrl())
+                .bannerUrl(user.getBannerUrl())
                 .build();
 
-        return new ProfileResponse(userDto, artworks, isFollowing);
+        // Calculate user stats
+        UserStatsDto stats = calculateUserStats(user);
+
+        return ProfileResponse.builder()
+                .user(userDto)
+                .artworks(artworks)
+                .isFollowing(isFollowing)
+                .stats(stats)
+                .build();
+    }
+
+    /**
+     * Calculate user statistics.
+     */
+    private UserStatsDto calculateUserStats(User user) {
+        long followerCount = followRepository.countByFollowed(user);
+        long followingCount = followRepository.countByFollower(user);
+        long artworkCount = artworkRepository.countByUser(user);
+        long totalReactions = artworkRepository.countTotalReactionsByUser(user);
+
+        return UserStatsDto.builder()
+                .followerCount(followerCount)
+                .followingCount(followingCount)
+                .artworkCount(artworkCount)
+                .totalReactions(totalReactions)
+                .build();
     }
 
     /**
@@ -84,13 +111,13 @@ public class ProfileService {
      * 
      * SECURITY: Only the profile owner can update their profile.
      * 
-     * @param id User ID to update
+     * @param id            User ID to update
      * @param updateRequest Fields to update
      * @return Updated user DTO
-     * @throws ResourceNotFoundException if user not found
-     * @throws UnauthorizedException if current user doesn't own the profile
+     * @throws ResourceNotFoundException  if user not found
+     * @throws UnauthorizedException      if current user doesn't own the profile
      * @throws DuplicateResourceException if new email already exists
-     * @throws IllegalArgumentException if email format is invalid
+     * @throws IllegalArgumentException   if email format is invalid
      */
     public UserDto updateProfile(Long id, UserUpdateRequest updateRequest) {
         // Get the currently authenticated user
@@ -147,7 +174,51 @@ public class ProfileService {
                 .displayName(user.getDisplayName())
                 .email(user.getEmail())
                 .bio(user.getBio())
+                .avatarUrl(user.getAvatarUrl())
+                .bannerUrl(user.getBannerUrl())
                 .build();
     }
 
+    /**
+     * Update user avatar URL.
+     */
+    public void updateAvatar(Long userId, String avatarUrl) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
+        // Verify ownership
+        verifyOwnership(user);
+
+        user.setAvatarUrl(avatarUrl);
+        userRepository.save(user);
+    }
+
+    /**
+     * Update user banner URL.
+     */
+    public void updateBanner(Long userId, String bannerUrl) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
+        // Verify ownership
+        verifyOwnership(user);
+
+        user.setBannerUrl(bannerUrl);
+        userRepository.save(user);
+    }
+
+    /**
+     * Verify that the current authenticated user owns the profile.
+     */
+    private void verifyOwnership(User user) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            throw new UnauthorizedException("You must be logged in to perform this action");
+        }
+
+        String currentUsername = auth.getName();
+        if (!user.getUsername().equalsIgnoreCase(currentUsername)) {
+            throw new UnauthorizedException("You can only modify your own profile");
+        }
+    }
 }

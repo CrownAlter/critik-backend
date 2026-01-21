@@ -39,7 +39,7 @@ public class Artwork {
     @Size(max = 200, message = "Title cannot exceed 200 characters")
     private String title;
 
-    /** 
+    /**
      * Name of the original artist who created the artwork.
      * This allows users to credit artists when posting their work.
      */
@@ -66,6 +66,14 @@ public class Artwork {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    /** Flag indicating if the artwork has been edited after creation */
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean edited = false;
+
+    /** Timestamp of the last edit (null if never edited) */
+    private LocalDateTime lastEditedAt;
 
     @PrePersist
     public void onCreate() {

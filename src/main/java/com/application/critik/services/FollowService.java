@@ -10,8 +10,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Service for managing follow relationships between users.
@@ -31,14 +31,15 @@ public class FollowService {
 
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+    private final UserBlockService userBlockService;
 
     /**
      * Follow a user.
      * 
      * @param followerUsername Username of the user who wants to follow
-     * @param followedId ID of the user to follow
-     * @throws ResourceNotFoundException if users not found
-     * @throws IllegalArgumentException if trying to follow yourself
+     * @param followedId       ID of the user to follow
+     * @throws ResourceNotFoundException  if users not found
+     * @throws IllegalArgumentException   if trying to follow yourself
      * @throws DuplicateResourceException if already following
      */
     public void followUser(String followerUsername, Long followedId) {
@@ -49,6 +50,11 @@ public class FollowService {
 
         if (follower.getId().equals(followedId)) {
             throw new IllegalArgumentException("You cannot follow yourself");
+        }
+
+        // BLOCKING CHECK: Cannot follow if blocked
+        if (userBlockService.isBlockedEitherWay(follower.getId(), followedId)) {
+            throw new IllegalArgumentException("Cannot follow this user due to blocking settings");
         }
 
         if (followRepository.existsByFollowerIdAndFollowedId(follower.getId(), followedId)) {
@@ -65,7 +71,7 @@ public class FollowService {
      * Unfollow a user.
      * 
      * @param followerUsername Username of the user who wants to unfollow
-     * @param followedId ID of the user to unfollow
+     * @param followedId       ID of the user to unfollow
      * @throws ResourceNotFoundException if users not found
      */
     @Transactional
@@ -79,33 +85,33 @@ public class FollowService {
     }
 
     /**
-     * Get all followers of a user.
+     * Get all followers of a user (paginated).
      * 
-     * @param userId ID of the user
-     * @return List of users following this user
+     * @param userId   ID of the user
+     * @param pageable Pagination info
+     * @return Page of users following this user
      */
     @Transactional
-    public List<User> getFollowers(Long userId) {
+    public Page<User> getFollowers(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
-        return followRepository.findByFollowed(user).stream()
-                .map(Follow::getFollower)
-                .collect(Collectors.toList());
+        return followRepository.findByFollowed(user, pageable)
+                .map(Follow::getFollower);
     }
 
     /**
-     * Get all users that a user follows.
+     * Get all users that a user follows (paginated).
      * 
-     * @param userId ID of the user
-     * @return List of users this user follows
+     * @param userId   ID of the user
+     * @param pageable Pagination info
+     * @return Page of users this user follows
      */
     @Transactional
-    public List<User> getFollowing(Long userId) {
+    public Page<User> getFollowing(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
-        return followRepository.findByFollower(user).stream()
-                .map(Follow::getFollowed)
-                .collect(Collectors.toList());
+        return followRepository.findByFollower(user, pageable)
+                .map(Follow::getFollowed);
     }
 
     /**

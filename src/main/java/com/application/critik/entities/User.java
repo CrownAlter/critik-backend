@@ -49,4 +49,10 @@ public class User {
     @Size(max = 500, message = "Bio cannot exceed 500 characters")
     private String bio;
 
+    /** URL to user's profile avatar/picture */
+    private String avatarUrl;
+
+    /** URL to user's profile banner/cover image */
+    private String bannerUrl;
+
 }

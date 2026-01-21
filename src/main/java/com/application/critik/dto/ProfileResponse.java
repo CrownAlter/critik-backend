@@ -14,4 +14,7 @@ public class ProfileResponse {
     private UserDto user;
     private List<Artwork> artworks;
     private Boolean isFollowing;
+
+    /** User statistics (followers, following, artworks, reactions) */
+    private UserStatsDto stats;
 }

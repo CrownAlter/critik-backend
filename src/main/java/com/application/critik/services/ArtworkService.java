@@ -53,17 +53,26 @@ public class ArtworkService {
     private com.application.critik.repositories.CommentRepository commentRepository;
     @Autowired
     private com.application.critik.repositories.ReactionRepository reactionRepository;
+    @Autowired
+    private ArtworkRevisionService artworkRevisionService;
+    @Autowired
+    private UserBlockService userBlockService;
 
     // Allowed image file extensions
     private static final Set<String> ALLOWED_EXTENSIONS = new HashSet<>(
-            Arrays.asList("jpg", "jpeg", "png", "gif", "webp")
-    );
+            Arrays.asList("jpg", "jpeg", "png", "gif", "webp"));
 
     /**
-     * Gets all artworks (public feed).
+     * Gets all artworks (public feed) with pagination.
+     * Excludes blocked users if userId is provided.
      */
-    public List<Artwork> getAllArtworks() {
-        return artworkRepository.findAll();
+    public org.springframework.data.domain.Page<Artwork> getAllArtworks(
+            org.springframework.data.domain.Pageable pageable, Long userId) {
+        if (userId != null) {
+            List<Long> blockedUserIds = userBlockService.getAllBlockedUserIds(userId);
+            return artworkRepository.findPublicFeedExcludingBlocked(blockedUserIds, pageable);
+        }
+        return artworkRepository.findAllByOrderByCreatedAtDesc(pageable);
     }
 
     /**
@@ -86,20 +95,20 @@ public class ArtworkService {
     /**
      * Uploads a new artwork.
      * 
-     * @param username Username of the uploader
-     * @param file Image file to upload
-     * @param title Artwork title
-     * @param artistName Name of the original artist
-     * @param locationName Location where artwork was found/displayed
-     * @param lat Latitude coordinate (optional)
-     * @param lon Longitude coordinate (optional)
+     * @param username       Username of the uploader
+     * @param file           Image file to upload
+     * @param title          Artwork title
+     * @param artistName     Name of the original artist
+     * @param locationName   Location where artwork was found/displayed
+     * @param lat            Latitude coordinate (optional)
+     * @param lon            Longitude coordinate (optional)
      * @param interpretation User's interpretation/description
-     * @param tags Comma-separated tags
+     * @param tags           Comma-separated tags
      * @return Created artwork entity
      */
     public Artwork uploadArtwork(String username, MultipartFile file, String title, String artistName,
-                                 String locationName, Double lat, Double lon, 
-                                 String interpretation, String tags) throws IOException {
+            String locationName, Double lat, Double lon,
+            String interpretation, String tags) throws IOException {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User", username));
@@ -108,7 +117,7 @@ public class ArtworkService {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Image file is required");
         }
-        
+
         // Validate file extension
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || !isValidImageExtension(originalFilename)) {
@@ -121,7 +130,8 @@ public class ArtworkService {
         }
 
         File dir = new File(uploadDir);
-        if (!dir.exists()) dir.mkdirs();
+        if (!dir.exists())
+            dir.mkdirs();
 
         // Generate unique filename to prevent overwrites and path traversal
         String sanitizedFilename = originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_");
@@ -148,26 +158,31 @@ public class ArtworkService {
      * Updates an existing artwork.
      * 
      * SECURITY: Only the artwork owner can update it.
+     * FEATURE: Saves revision history before updating.
      * 
-     * @param artworkId ID of artwork to update
-     * @param title New title (optional)
-     * @param artistName New artist name (optional)
-     * @param locationName New location name (optional)
-     * @param lat New latitude (optional)
-     * @param lon New longitude (optional)
+     * @param artworkId      ID of artwork to update
+     * @param title          New title (optional)
+     * @param artistName     New artist name (optional)
+     * @param locationName   New location name (optional)
+     * @param lat            New latitude (optional)
+     * @param lon            New longitude (optional)
      * @param interpretation New interpretation (optional)
-     * @param tags New tags (optional)
+     * @param tags           New tags (optional)
      * @return Updated artwork
      */
-    public Artwork updateArtwork(Long artworkId, String title, String artistName, 
-                                 String locationName, Double lat, Double lon,
-                                 String interpretation, String tags) {
-        
+    @jakarta.transaction.Transactional
+    public Artwork updateArtwork(Long artworkId, String title, String artistName,
+            String locationName, Double lat, Double lon,
+            String interpretation, String tags) {
+
         Artwork artwork = artworkRepository.findById(artworkId)
                 .orElseThrow(() -> new ResourceNotFoundException("Artwork", artworkId));
 
         // SECURITY: Verify ownership
         verifyOwnership(artwork);
+
+        // Save current state as revision before updating
+        artworkRevisionService.saveRevision(artwork);
 
         // Update fields if provided
         if (title != null && !title.trim().isEmpty()) {
@@ -192,6 +207,10 @@ public class ArtworkService {
             artwork.setTags(tags.trim().isEmpty() ? null : tags.trim());
         }
 
+        // Mark as edited
+        artwork.setEdited(true);
+        artwork.setLastEditedAt(java.time.LocalDateTime.now());
+
         return artworkRepository.save(artwork);
     }
 
@@ -214,7 +233,7 @@ public class ArtworkService {
         // Delete related entities first to avoid foreign key constraint violations
         // Delete all reactions
         reactionRepository.deleteByArtworkId(artworkId);
-        
+
         // Delete all comments (including replies due to cascade in Comment entity)
         commentRepository.deleteByArtworkId(artworkId);
 
@@ -236,19 +255,32 @@ public class ArtworkService {
     }
 
     /**
-     * Gets personalized feed for authenticated user.
-     * Shows artworks from followed users, or recent artworks if not following anyone.
+     * Gets personalized feed for authenticated user with pagination.
+     * Shows artworks from followed users, excluding blocked users.
      */
-    public List<Artwork> getFeedForUser(Long userId) {
-        // Fetch artworks from followed users
-        List<Artwork> artworks = artworkRepository.findFeedForUser(userId);
+    public org.springframework.data.domain.Page<Artwork> getFeedForUser(
+            Long userId, org.springframework.data.domain.Pageable pageable) {
+        // Get list of blocked user IDs
+        List<Long> blockedUserIds = userBlockService.getAllBlockedUserIds(userId);
 
-        // If none exist (new user or not following anyone), get trending/recent
-        if (artworks.isEmpty()) {
-            artworks = artworkRepository.findTop10ByOrderByCreatedAtDesc();
-        }
+        // Fetch artworks from followed users, excluding blocked
+        return artworkRepository.findFeedForUser(userId, blockedUserIds, pageable);
+    }
 
-        return artworks;
+    /**
+     * Gets artworks sorted by popularity (total reactions).
+     */
+    public org.springframework.data.domain.Page<Artwork> getPopularArtworks(
+            org.springframework.data.domain.Pageable pageable) {
+        return artworkRepository.findAllByPopularity(pageable);
+    }
+
+    /**
+     * Gets artworks sorted by controversy (balanced reactions).
+     */
+    public org.springframework.data.domain.Page<Artwork> getControversialArtworks(
+            org.springframework.data.domain.Pageable pageable) {
+        return artworkRepository.findAllByControversy(pageable);
     }
 
     /**
@@ -274,7 +306,8 @@ public class ArtworkService {
      */
     private boolean isValidImageExtension(String filename) {
         int lastDot = filename.lastIndexOf('.');
-        if (lastDot < 0) return false;
+        if (lastDot < 0)
+            return false;
         String extension = filename.substring(lastDot + 1).toLowerCase();
         return ALLOWED_EXTENSIONS.contains(extension);
     }
