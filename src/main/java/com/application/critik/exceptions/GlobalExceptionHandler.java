@@ -18,7 +18,8 @@ import java.util.Map;
  * Global exception handler for the Critik application.
  * 
  * Provides consistent error responses across all API endpoints.
- * All exceptions are caught here and transformed into appropriate HTTP responses
+ * All exceptions are caught here and transformed into appropriate HTTP
+ * responses
  * with standardized error format.
  * 
  * SECURITY: Sensitive information is never exposed in error messages.
@@ -34,18 +35,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, Object> response = new HashMap<>();
         Map<String, String> errors = new HashMap<>();
-        
+
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        
+
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.BAD_REQUEST.value());
         response.put("error", "Validation Failed");
         response.put("details", errors);
-        
+
         return ResponseEntity.badRequest().body(response);
     }
 
@@ -120,9 +121,10 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
-        // Log the actual exception for debugging (in production, use proper logging)
+        // Log the actual exception for debugging
         ex.printStackTrace();
-        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred. Please try again later.");
+        // DEBUGGING: Expose error for diagnosis
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getClass().getName() + ": " + ex.getMessage());
     }
 
     /**

@@ -107,6 +107,19 @@ A production-ready social media backend application for reviewing and discussing
 | GET | `/search/users?q={query}` | Search users | No |
 | GET | `/search/artworks?title=&location=&tags=` | Search artworks | No |
 
+### Blocking
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/blocks/{userId}` | Block user | Yes |
+| DELETE | `/api/blocks/{userId}` | Unblock user | Yes |
+| GET | `/api/blocks` | Get blocked users | Yes |
+
+### Artwork History
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/artworks/{id}/history` | Get edit history | No |
+| POST | `/artworks/{id}/restore/{revisionId}` | Restore revision | Yes (owner) |
+
 ## Technology Stack
 
 - **Java 21**
@@ -194,6 +207,21 @@ To try authenticated endpoints in Swagger UI, click **Authorize** and paste your
 
 ### Run Tests
 
+**Integration Test Suite (Recommended)**
+The project includes a comprehensive Python-based test suite that covers all endpoints.
+
+1. Install Python 3.10+
+2. Install pip dependencies:
+   ```bash
+   pip install requests
+   ```
+3. Run the test script:
+   ```bash
+   python test_endpoints.py
+   ```
+
+**Unit Tests**
+To run standard JUnit tests:
 ```bash
 ./mvnw test
 ```
@@ -469,7 +497,11 @@ src/main/java/com/application/critik/
 ├── controllers/
 │   ├── AuthController.java         # Authentication endpoints
 │   ├── ArtworkController.java      # Artwork CRUD operations
+│   ├── ArtworkHistoryController.java # Revision history
+│   ├── BlockController.java        # User blocking
+│   ├── BookmarkController.java     # Bookmarks
 │   ├── CommentController.java      # Comment operations
+│   ├── CommentReactionController.java # Comment reactions
 │   ├── FollowController.java       # Follow/unfollow operations
 │   ├── ProfileController.java      # User profile operations
 │   ├── ReactionController.java     # Reaction operations
@@ -483,11 +515,16 @@ src/main/java/com/application/critik/
 │   └── UserUpdateRequest.java      # Profile update request
 ├── entities/
 │   ├── Artwork.java                # Artwork entity with artist name
+│   ├── ArtworkRevision.java        # History of artwork edits
+│   ├── Bookmark.java               # Bookmarked artworks
 │   ├── Comment.java                # Comment entity with nested replies
+│   ├── CommentReaction.java        # Reactions to comments
 │   ├── Follow.java                 # Follow relationship entity
 │   ├── Reaction.java               # Reaction entity
 │   ├── ReactionType.java           # AGREE/DISAGREE enum
-│   └── User.java                   # User entity
+│   ├── RefreshToken.java           # JWT refresh tokens
+│   ├── User.java                   # User entity
+│   └── UserBlock.java              # Blocked users
 ├── exceptions/
 │   ├── GlobalExceptionHandler.java # Centralized exception handling
 │   ├── DuplicateResourceException.java
@@ -497,9 +534,14 @@ src/main/java/com/application/critik/
 │   └── ArtworkMapper.java          # Entity to DTO mapping
 ├── repositories/
 │   ├── ArtworkRepository.java
+│   ├── ArtworkRevisionRepository.java
+│   ├── BookmarkRepository.java
 │   ├── CommentRepository.java
+│   ├── CommentReactionRepository.java
 │   ├── FollowRepository.java
 │   ├── ReactionRepository.java
+│   ├── RefreshTokenRepository.java
+│   ├── UserBlockRepository.java
 │   └── UserRepository.java
 ├── security/
 │   ├── JwtRequestFilter.java       # JWT authentication filter
@@ -508,11 +550,16 @@ src/main/java/com/application/critik/
 └── services/
     ├── AuthService.java            # Authentication logic
     ├── ArtworkService.java         # Artwork business logic
+    ├── ArtworkRevisionService.java # Revision history logic
+    ├── BookmarkService.java        # Bookmark logic
     ├── CommentService.java         # Comment business logic
+    ├── CommentReactionService.java # Comment reaction logic
     ├── FollowService.java          # Follow business logic
     ├── ProfileService.java         # Profile business logic
     ├── ReactionService.java        # Reaction business logic
-    └── SearchService.java          # Search business logic
+    ├── RefreshTokenService.java    # Review token logic
+    ├── SearchService.java          # Search business logic
+    └── UserBlockService.java       # Block logic
 ```
 
 ## Security Improvements Made

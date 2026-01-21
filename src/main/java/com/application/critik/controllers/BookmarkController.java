@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import com.application.critik.repositories.UserRepository;
+import com.application.critik.exceptions.ResourceNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -25,6 +27,7 @@ import java.util.Map;
 public class BookmarkController {
 
     private final BookmarkService bookmarkService;
+    private final UserRepository userRepository;
 
     /**
      * Bookmark an artwork.
@@ -101,8 +104,10 @@ public class BookmarkController {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new RuntimeException("User not authenticated");
         }
-        // Assuming the authentication principal contains the user ID
-        // This may need adjustment based on your JWT implementation
-        return Long.parseLong(authentication.getName());
+
+        String username = authentication.getName();
+        return userRepository.findByUsername(username)
+                .map(com.application.critik.entities.User::getId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
     }
 }

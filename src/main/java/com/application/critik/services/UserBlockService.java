@@ -114,7 +114,8 @@ public class UserBlockService {
             return false;
         }
 
-        return userBlockRepository.existsBlockBetween(user1, user2);
+        return userBlockRepository.existsByBlockerAndBlocked(user1, user2) ||
+                userBlockRepository.existsByBlockerAndBlocked(user2, user1);
     }
 
     /**

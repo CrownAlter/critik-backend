@@ -46,19 +46,27 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath(); // Excludes context path
-        
+
         // Public prefixes - authentication not required
-        if (path.startsWith("/uploads/") || path.startsWith("/auth/")) return true;
+        if (path.startsWith("/uploads/"))
+            return true;
+
+        // Specific auth public endpoints only
+        if (path.equals("/auth/login") || path.equals("/auth/register") || path.equals("/auth/refresh"))
+            return true;
 
         // OpenAPI / Swagger UI
-        if (path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui") || path.equals("/swagger-ui.html")) return true;
-        
+        if (path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui") || path.equals("/swagger-ui.html"))
+            return true;
+
         // Public exact routes
-        if (path.equals("/artworks/feed") || path.equals("/favicon.ico")) return true;
-        
+        if (path.equals("/artworks/feed") || path.equals("/favicon.ico"))
+            return true;
+
         // Static assets (if any)
-        if (path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/images/")) return true;
-        
+        if (path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/images/"))
+            return true;
+
         return false;
     }
 
@@ -73,14 +81,14 @@ public class JwtRequestFilter extends OncePerRequestFilter {
      * 5. Validate token
      * 6. Set authentication in SecurityContext if valid
      * 
-     * @param request HTTP request
-     * @param response HTTP response
+     * @param request     HTTP request
+     * @param response    HTTP response
      * @param filterChain Filter chain to continue processing
      */
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
         String username = null;
@@ -98,15 +106,15 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
             if (jwtUtil.validateToken(jwt, userDetails)) {
                 // Create authentication token
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
+                        null, userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                
+
                 // Set authentication in SecurityContext
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
-        
+
         // Continue filter chain
         filterChain.doFilter(request, response);
     }

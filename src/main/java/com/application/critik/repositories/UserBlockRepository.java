@@ -41,14 +41,6 @@ public interface UserBlockRepository extends JpaRepository<UserBlock, Long> {
     void deleteByBlockerAndBlocked(User blocker, User blocked);
 
     /**
-     * Check if there's a block relationship in either direction
-     */
-    @Query("SELECT CASE WHEN COUNT(ub) > 0 THEN true ELSE false END FROM UserBlock ub " +
-            "WHERE (ub.blocker = :user1 AND ub.blocked = :user2) " +
-            "OR (ub.blocker = :user2 AND ub.blocked = :user1)")
-    boolean existsBlockBetween(@Param("user1") User user1, @Param("user2") User user2);
-
-    /**
      * Get list of user IDs that the given user has blocked
      */
     @Query("SELECT ub.blocked.id FROM UserBlock ub WHERE ub.blocker = :user")

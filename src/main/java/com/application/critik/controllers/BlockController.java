@@ -8,6 +8,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import com.application.critik.repositories.UserRepository;
+import com.application.critik.exceptions.ResourceNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -24,6 +26,7 @@ import java.util.Map;
 public class BlockController {
 
     private final UserBlockService userBlockService;
+    private final UserRepository userRepository;
 
     /**
      * Block a user.
@@ -100,6 +103,10 @@ public class BlockController {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new RuntimeException("User not authenticated");
         }
-        return Long.parseLong(authentication.getName());
+
+        String username = authentication.getName();
+        return userRepository.findByUsername(username)
+                .map(com.application.critik.entities.User::getId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
     }
 }

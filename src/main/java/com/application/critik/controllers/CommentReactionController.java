@@ -6,6 +6,8 @@ import com.application.critik.services.CommentReactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import com.application.critik.repositories.UserRepository;
+import com.application.critik.exceptions.ResourceNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -22,6 +24,7 @@ import java.util.Map;
 public class CommentReactionController {
 
     private final CommentReactionService commentReactionService;
+    private final UserRepository userRepository;
 
     /**
      * Add or update a reaction to a comment.
@@ -99,6 +102,10 @@ public class CommentReactionController {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new RuntimeException("User not authenticated");
         }
-        return Long.parseLong(authentication.getName());
+
+        String username = authentication.getName();
+        return userRepository.findByUsername(username)
+                .map(com.application.critik.entities.User::getId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
     }
 }
